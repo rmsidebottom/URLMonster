@@ -1,4 +1,3 @@
-import json
 import hashlib
 import mysql.connector
 from flask import Flask, request, redirect, render_template
