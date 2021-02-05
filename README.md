@@ -57,7 +57,7 @@ After the mysql installation, the script will set up the database and table need
     - shorturl varchar(28) - the short URL for reference
     
 ### Table Setup
-| **hashid varchar(6)** | longurl varchar(50) | shorturl varchar(28) |
+| *hashid varchar(6)* | longurl varchar(50) | shorturl varchar(28) |
 | :---: | :---: | :---: |
 | 123456 | www.google.com | http://localhost:5000/123456 |
 | 098765 | www.bing.com | http://localhost:5000/098765 | 
