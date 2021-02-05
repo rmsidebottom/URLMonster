@@ -14,6 +14,7 @@ In its present form, it works by taking in a URL and computing its SHA1 hash. Fr
 This URL shortener has three components; a Python script, a mySQL backend, and a basic front end webpage ([index.html](index.html)).
 
 ## Python Backend
+To set up the python environment, ensure `pipenv` is installed and then run `pipenv install`. Upon success, you can then run `export FLAKS_APP=urlmonster.py && pipenv run flask run` to start the flask webapp.
 
 ### `/` - GET request
 This route is set up to serve the `index.html` file and the form it hosts. From here a user can submit a URL they will to shorten.
