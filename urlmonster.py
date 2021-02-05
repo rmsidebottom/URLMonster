@@ -7,10 +7,12 @@ from pathlib import Path
 
 app = Flask(__name__)
 
+# set up general variables used throughout the application
 database = 'urlmonster'
 table = 'links'
 user = 'root'
 secretFile = 'secrets.txt'
+# reading the password in like this results in a trailing newline
 password = Path(secretFile).read_text()[:-1]
 domain = 'localhost:5000/'
 
@@ -35,7 +37,7 @@ def shorten():
     sql_statement = f'SELECT longurl from {table} where hashid = \"{hash}\"'
     ans = runDbQuery(sql_statement)
     if ans['status']:
-        return f'Your tinyurl is {shorturl}'
+        return f'Your tinyurl is {domain}{hash}'
     else:
         # if it fails to find a database entry, there was either a problem
         # or the item exists, try again by trying to create an entry
