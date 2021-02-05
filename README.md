@@ -14,7 +14,6 @@ In its present form, it works by taking in a URL and computing its SHA1 hash. Fr
 This URL shortener has three components; a Python script, a mySQL backend, and a basic front end webpage ([index.html](index.html)).
 
 ## Python Backend
-When making calls to the data, all queries are made with the cursor setting `prepared=True` to mitigate injection attacks. Parameterized queries are also used to help.
 
 ### `/` - GET request
 This route is set up to serve the `index.html` file and the form it hosts. From here a user can submit a URL they will to shorten.
@@ -40,6 +39,7 @@ This function will redirect the user to the URL that matches the ID submitted. W
 Sample url: `http://127.0.0.1:5000/123456`
 
 ### Security
+When making calls to the data, all queries are made with the cursor setting `prepared=True` to mitigate injection attacks. Parameterized queries are also used to help.
 
 ## mySQL Database
 This is a simple database backend used simply because I already had it installed locally on my computer. If you are using mySQL, you can configure yours by running the setup script contained in this repo ([db_setup.sh](db_setup.sh)). Prior to beginning, create a text file (`secrets.txt`) containing what the mySQL password should be or is (if the mySQL instance is already set up). This is read in by both the db script and the python files.

@@ -23,7 +23,6 @@ Takes full url and returns the shortened version
 def shorten():
     if request.get_json():
         req = request.get_json()
-        print(req)
         url = req['url']
     elif request.form['url']:
         url = request.form['url']
@@ -87,7 +86,6 @@ id is the hash id returned when a URL is shortened
 def receiveID(id):
     # prepare select statement, we know we want to turn the ID into a url
     sql_statement = f'SELECT longurl from {table} where hashid = \"{id}\"'
-    print(sql_statement)
     # make the query
     ans = runDbQuery(sql_statement)
 
@@ -115,6 +113,7 @@ def index():
 def runDbQuery(query):
     failure = {'status': False,
         'message': 'There was an issue processing you request.'}
+    ret = {}
     try:
         # create connection to the database
         connection = mysql.connector.connect(
@@ -145,7 +144,6 @@ def runDbQuery(query):
         if (connection.is_connected()):
             dbcursor.close()
             connection.close()
-            print('MySQL connection is closed')
 
         # return to the calling function, returns a status and a message or the
         # value pulled from the database
