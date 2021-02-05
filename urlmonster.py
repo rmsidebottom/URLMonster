@@ -1,96 +1,122 @@
 import json
 import hashlib
 import mysql.connector
-from flask import Flask, request, redirect
+from flask import Flask, request, redirect, render_template
 from markupsafe import escape
 from pathlib import Path
 
 app = Flask(__name__)
 
-database = "urlmonster"
-table = "links"
-user = "root"
-secretFile = "secrets.txt"
+database = 'urlmonster'
+table = 'links'
+user = 'root'
+secretFile = 'secrets.txt'
 password = Path(secretFile).read_text()[:-1]
-domain = "localhost:5000/"
+domain = 'localhost:5000/'
 
 '''
 Takes full url and returns the shortened version
 '''
-@app.route("/shorten/",methods = ['POST'])
+@app.route('/shorten/',methods = ['POST'])
 def shorten():
-    req = request.get_json()
-    url = req['url']
-    # using sha1 hash, no hash ids function in python
-    # get hex digest to shorten hash
-    hash = hashlib.sha1(url.encode("UTF-8")).hexdigest()[0:6]
-    # pull first 6 characters to make tiny url
-    shorturl = escape(f'{domain}{hash}')
-    sql_statement = f"insert into {table} (hashid, longurl, shorturl) values (\'{hash}\',\'{escape(url)}\', \'{shorturl}\')"
-    # push tiny url into database
-    ans = runDbQuery(sql_statement)
-    if ans["status"]:
-        return f"Your tinyurl is {shorturl}"
+    if request.get_json():
+        req = request.get_json()
+        print(req)
+        url = req['url']
+    elif request.form['url']:
+        url = request.form['url']
     else:
-        return ans["message"]
+        return "Unexpected input format. Submit json or through the form."
+    # using sha1 hash, no hash ids function in python
+    # get hex digest to shorten hash, pull first 6 characters to make tiny url
+    hash = hashlib.sha1(url.encode('UTF-8')).hexdigest()[0:6]
+
+    # first sql statement is to check if item exists
+    sql_statement = f'SELECT longurl from {table} where hashid = \"{hash}\"'
+    ans = runDbQuery(sql_statement)
+    if ans['status']:
+        return f'Your tinyurl is {shorturl}'
+    else:
+        # if it fails to find a database entry, there was either a problem
+        # or the item exists, try again by trying to create an entry
+        # if this fails, return an error
+        shorturl = escape(f'{domain}{hash}')
+        sql_statement = f'insert into {table} (hashid, longurl, shorturl) values (\"{hash}\",\"{escape(url)}\", \"{shorturl}\")'
+        # push tiny url into database
+        ans = runDbQuery(sql_statement)
+        if ans['status']:
+            return f'Your tinyurl is {shorturl}'
+        else:
+            return ans['message']
 
 '''
 Takes shortened url and returns the full url
+
+id is the hash id returned when a URL is shortened
 '''
-@app.route("/lengthen/", methods=['GET'])
+@app.route('/lengthen/', methods=['GET'])
 def lengthen():
     # get the url ID
     id = request.args.get('id')
 
     # prepare select statement, we know we want to turn the ID into a url
-    sql_statment = f"SELECT longurl from {table} where hashid = \'{id}\'"
+    sql_statement = f'SELECT longurl from {table} where hashid = \"{id}\"'
 
     # make the query
-    ans = runDbQuery(sql_statment)
+    ans = runDbQuery(sql_statement)
 
     # check if query succeeded
-    if ans["status"]:
+    if ans['status']:
         # grab url and decode it
-        url = ans["result"][0].decode()
+        url = ans['result'][0].decode()
         # return url to satisfy request
         return url
     else:
         # on failure, return the message
-        return ans["message"]
+        return ans['message']
 
 
 '''
 Takes a short url id and redirects the user to the long url
+
+id is the hash id returned when a URL is shortened
 '''
-@app.route("/<id>")
+@app.route('/<id>')
 def receiveID(id):
     # prepare select statement, we know we want to turn the ID into a url
-    sql_statment = f"SELECT longurl from {table} where hashid = \'{id}\'"
-    print(sql_statment)
+    sql_statement = f'SELECT longurl from {table} where hashid = \"{id}\"'
+    print(sql_statement)
     # make the query
-    ans = runDbQuery(sql_statment)
+    ans = runDbQuery(sql_statement)
 
     # check if query succeeded
-    if ans["status"]:
+    if ans['status']:
         # grab url and decode it
-        url = ans["result"][0].decode()
+        url = ans['result'][0].decode()
         # check if url begins with http(s) then redirect user to that site
-        if url.startswith("https://") or url.startswith("http://"):
+        if url.startswith('https://') or url.startswith('http://'):
             return redirect(url)
         else:
-            return redirect(f"https://{url}")
+            return redirect(f'https://{url}')
     else:
         # on failure, return the message
-        return ans["message"]
+        return ans['message']
+
+'''
+Set up the web application
+'''
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 # connect to the database and run a query
 def runDbQuery(query):
-    failure = {"status": False,
-        "message": "There was an issue processing you request."}
+    failure = {'status': False,
+        'message': 'There was an issue processing you request.'}
     try:
         # create connection to the database
         connection = mysql.connector.connect(
-            host="localhost",
+            host='localhost',
             user=user,
             password=password,
             database=database,
@@ -99,25 +125,25 @@ def runDbQuery(query):
         dbcursor = connection.cursor(prepared=True)
 
         # check what statement needs to be run
-        if query.lower().startswith("select"):
+        if query.lower().startswith('select'):
             dbcursor.execute(query)
             # returns a tuple with url as a bytearray (url, '')
             data = dbcursor.fetchone()
             # let the user know if they entered a value that we don't have
-            if len(data) == 0:
+            if (not data) or (len(data) == 0):
                 ret = failure
             else:
-                ret = {"status": True, "result": data}
-        elif query.lower().startswith("insert"):
+                ret = {'status': True, 'result': data}
+        elif query.lower().startswith('insert'):
             dbcursor.execute(query)
             connection.commit()
-            ret = {"status": True, "message": "Success"}
+            ret = {'status': True, 'message': 'Success'}
 
         # close database connections
         if (connection.is_connected()):
             dbcursor.close()
             connection.close()
-            print("MySQL connection is closed")
+            print('MySQL connection is closed')
 
         # return to the calling function, returns a status and a message or the
         # value pulled from the database
@@ -126,5 +152,5 @@ def runDbQuery(query):
         print(e)
         return failure
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
